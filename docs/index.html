@@ -3,15 +3,22 @@
 <head>
     <meta charset="utf-8">
     <title>DevTools Timeline Viewer</title>
+    <script>
+      if (window.location.host === 'deepanjan.me') {
+        console.log("Setting proper base url");
+        document.write("<base href='" + window.location.protocol + '//' + window.location.host + "/timeline-viewer' >");
+      }
+
+    </script>
     <link rel="stylesheet" href="styles.css">
     <link rel="import" href="catapult/tracing/bin/trace_viewer_full.html">
-    <link rel="import" href="catapult/tracing/tracing/ui/base/file.html">
+   <link rel="import" href="catapult/tracing/tracing/ui/base/file.html">
 </head>
 <body>
     <div id="metricInfo">
       <div id="metricInfoContents"></div>
     </div>
-      <div id="metricInfoToggle">Toggle Info</div>
+    <div id="metricInfoToggle">Toggle Info</div>
     <input type="file" id="files" name="files[]" multiple />
     <div class="welcome w-100 sans-serif bg-white">
         <h1 class="f2 f-subheadline-ns mb0">
