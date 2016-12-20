@@ -1,0 +1,3 @@
+[submodule "docs/catapult"]
+	path = docs/catapult
+	url = https://github.com/deepanjanroy/catapult
