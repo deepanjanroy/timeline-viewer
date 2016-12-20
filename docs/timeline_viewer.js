@@ -4,6 +4,7 @@ class Viewer {
   constructor() {
     this.params = new URL(location.href).searchParams;
     this.timelineURL = this.params.get('loadTimelineFromURL');
+
     this.timelineId;
     this.timelineProvider = 'url';
 
@@ -83,8 +84,12 @@ class Viewer {
 
     // Common.settings is created in a window onload listener
     window.addEventListener('load', _ => {
-      Common.settings.createSetting('timelineCaptureNetwork', true).set(true)
-      Common.settings.createSetting('timelineCaptureFilmStrip', true).set(true)
+      window.uglyGlobals = window.uglyGlobals || {};
+      window.uglyGlobals.runOnWindowLoad = window.uglyGlobals.runOnWindowLoad || [];
+      window.uglyGlobals.runOnWindowLoad.push(_ => {
+        Common.settings.createSetting('timelineCaptureNetwork', true).set(true)
+        Common.settings.createSetting('timelineCaptureFilmStrip', true).set(true)
+      });
     });
   }
 
@@ -163,11 +168,19 @@ class Viewer {
   }
 
   monkeypatchLoadResourcePromise() {
+      console.log("monkey patching load resource promise");
       this._orig_loadResourcePromise = Runtime.loadResourcePromise;
       Runtime.loadResourcePromise = viewer.loadResourcePromise.bind(viewer);
   }
 
+  traceProviderPromise() {
+    return Promise.resolve(window.uglyGlobals.rawTrace);
+  }
+
   loadResourcePromise(requestedURL) {
+    console.log("Calling Viewer.loadResourcePromise with url: ", requestedURL);
+    if (requestedURL === 'LOADFROMDB') return this.traceProviderPromise();
+    // debugger;
     var url = new URL(requestedURL);
     var URLofViewer = new URL(location.href);
     var URLdevtoolsBase = new URL(this.devtoolsBase);
@@ -327,6 +340,9 @@ form.addEventListener('submit', evt => {
     parsedURL.searchParams.delete('loadTimelineFromURL')
     // this is weird because we don't want url encoding of the URL
     parsedURL.searchParams.append('loadTimelineFromURL', 'REPLACEME')
+    if (window.uglyGlobals && window.uglyGlobals.markers) {
+      parsedURL.searchParams.append('markers', encodeURIComponent(JSON.stringify(window.uglyGlobals.markers)));
+    }
     const newurl = parsedURL.toString().replace('REPLACEME', url);
     location.href = newurl;
 });
