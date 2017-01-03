@@ -12,14 +12,14 @@
     </script>
     <link rel="stylesheet" href="styles.css">
     <link rel="import" href="catapult/tracing/bin/trace_viewer_full.html">
-   <link rel="import" href="catapult/tracing/tracing/ui/base/file.html">
+    <link rel="import" href="catapult/tracing/tracing/ui/base/file.html">
+    <script src="pako.min.js"></script>
 </head>
 <body>
     <div id="metricInfo">
       <div id="metricInfoContents"></div>
     </div>
     <div id="metricInfoToggle">Toggle Info</div>
-    <input type="file" id="files" name="files[]" multiple />
     <div class="welcome w-100 sans-serif bg-white">
         <h1 class="f2 f-subheadline-ns mb0">
             DevTools Timeline Viewer
@@ -44,6 +44,12 @@
             </div>
         </article>
 
+        <article class="center mw5 mw6-ns br3 ba b--black-10 mv4">
+            <h3 class="f4 bg-near-white br3 br--top black-60 mv0 pv2 ph3">Upload trace</h3>
+            <div class="pa3 bt b--black-10 f6 f5-ns lh-copy">
+              <input type="file" id="files" name="files[]" multiple />
+            </div>
+        </article>
         <article class="center mw5 mw6-ns br3 ba b--black-10 mv4">
             <h3 class="f4 bg-near-white br3 br--top black-60 mv0 pv2 ph3">View traces from Google Drive</h3>
             <div class="pa3 bt b--black-10 f6 f5-ns lh-copy">
@@ -77,40 +83,8 @@
     <script src="timeline_viewer_config.js"></script>
     <script src="timeline_viewer.js"></script>
     <script src="catapult_runner.js"></script>
-
     <script src="devtools/inspector.js" id="devtoolsscript"></script>
-    <script>
-      function init() {
-        // only works in Chrome because browser devtools
-        if (!(window.chrome && chrome.loadTimes)) {
-          document.getElementById('status').textContent = 'Sorry y\'all, Chrome required to view traces.';
-          return;
-        }
-        console.log("creating viewer");
-        window.viewer = new Viewer();
-
-        // hooks for the apis.google client.js
-        self.checkAuth = function() {
-          return viewer.checkAuth({immediate: true});
-        }
-        self.authBtn = viewer.authBtn;
-
-        // We are monkeypatching window.loadResourcePromise, which is from devtools' Runtime.js
-        viewer.monkeypatchLoadResourcePromise();
-        /* window.uglyGlobal.markers = [
-          {
-            title: "firstInteractive",
-            time: 800
-          },
-          {
-            title: "firstInteractive-AnotherOne",
-            time: 1500
-          }
-        ]; */
-      }
-      console.log("Calling init");
-      init();
-    </script>
+    <script src="main.js"></script>
     </body>
 
     <!-- <body class="undocked" id="-blink-dev-tools"></body> -->

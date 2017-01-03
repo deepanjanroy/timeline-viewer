@@ -87,8 +87,8 @@ class Viewer {
       window.uglyGlobals = window.uglyGlobals || {};
       window.uglyGlobals.runOnWindowLoad = window.uglyGlobals.runOnWindowLoad || [];
       window.uglyGlobals.runOnWindowLoad.push(_ => {
-        Common.settings.createSetting('timelineCaptureNetwork', true).set(true)
-        Common.settings.createSetting('timelineCaptureFilmStrip', true).set(true)
+        Common.settings.createSetting('timelineCaptureNetwork', true).set(true);
+        Common.settings.createSetting('timelineCaptureFilmStrip', true).set(true);
       });
     });
   }
@@ -173,13 +173,29 @@ class Viewer {
       Runtime.loadResourcePromise = viewer.loadResourcePromise.bind(viewer);
   }
 
-  traceProviderPromise() {
-    return Promise.resolve(window.uglyGlobals.rawTrace);
+  unzipOrDecode(payload) {
+    console.log("Attempting to unzip payload");
+    try {
+      payload = pako.inflate(payload, { to: 'string' });
+      console.log("Payload unzipped");
+    } catch (e) {
+      // Do nothing. Original file is probably not gzipped.
+      console.error(e);
+      console.log("Payload not unzipped. Decoding to text");
+      var decoder = new TextDecoder("utf-8");
+      payload = decoder.decode(payload);
+    }
+    return payload;
   }
 
   loadResourcePromise(requestedURL) {
     console.log("Calling Viewer.loadResourcePromise with url: ", requestedURL);
-    if (requestedURL === 'LOADFROMDB') return this.traceProviderPromise();
+    if (window.traceCache.has(requestedURL)) {
+      // This also handle LOADFROMDB
+      console.log(`TraceCache hit for url ${requestedURL}`);
+      return Promise.resolve(window.traceCache.get(requestedURL));
+    }
+
     // debugger;
     var url = new URL(requestedURL);
     var URLofViewer = new URL(location.href);
@@ -284,9 +300,13 @@ class Viewer {
       // Use an XHR rather than fetch so we can have progress events
       var xhr = new XMLHttpRequest();
       xhr.open('GET', url);
+      // console.log("params", this.params);
+      xhr.responseType = "arraybuffer";
       callbetween && callbetween(xhr);
       xhr.onprogress = this.updateProgress.bind(this);
-      xhr.onload = _ => resolve(xhr.responseText);
+      xhr.onload = _ => {
+        resolve(this.unzipOrDecode(xhr.response));
+      };
       xhr.onerror = (err => {
         this.makeDevToolsVisible(false);
         this.updateStatus('Download of asset failed. ' + ((xhr.readyState == xhr.DONE) ? 'CORS headers likely not applied.' : ''));

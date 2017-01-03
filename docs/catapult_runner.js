@@ -14,54 +14,45 @@ var ttiHistogramNames = [
   'firstInteractive-FMP-ReverseSearchFromNetworkFirstInteractive'
 ];
 
-function onMetricsComputed() {
-  console.log("onMetricsComputed");
+function storeTraceInIDB(trace) {
   // Put the uploaded trace in an indexedDB because it's 3AM and that's the best
   // idea I have for passing a file across setting location.href
 
   // Open (or create) the database
-  var open = indexedDB.open("TraceDB", 1);
+  return new Promise((resolve, reject) => {
+    var open = indexedDB.open("TraceDB", 1);
 
-  // Create the schema
-  open.onupgradeneeded = function() {
-    var db = open.result;
-    var store = db.createObjectStore("TraceStore", {keyPath: "id"});
-  };
-
-  open.onsuccess = function() {
-    // Start a new transaction
-    console.log("DB connection opened. Storing trace");
-    var db = open.result;
-    var tx = db.transaction("TraceStore", "readwrite");
-    var store = tx.objectStore("TraceStore");
-
-    // Add some data
-    store.put({id: 0, rawTrace: window.uglyGlobals.rawTrace});
-
-    // // Query the data
-    // var getJohn = store.get(12345);
-    // var getBob = index.get(["Smith", "Bob"]);
-
-    // getJohn.onsuccess = function() {
-    //   console.log(getJohn.result.name.first);  // => "John"
-    // };
-
-    // getBob.onsuccess = function() {
-    //   console.log(getBob.result.name.first);   // => "Bob"
-    // };
-
-    // Close the db when the transaction is done
-    tx.oncomplete = function() {
-      console.log("storing transaction complete. Issuing redirect");
-      db.close();
-      const parsedURL = new URL(location.href);
-      parsedURL.searchParams.delete('loadTimelineFromURL')
-      parsedURL.searchParams.append('loadTimelineFromURL', 'LOADFROMDB')
-      parsedURL.searchParams.append('loadTraceFromDB', 'true')
-      parsedURL.searchParams.append('markers', encodeURIComponent(JSON.stringify(window.uglyGlobals.markers)));
-      location.href = parsedURL;
+    // Create the schema
+    open.onupgradeneeded = function() {
+      var db = open.result;
+      var store = db.createObjectStore("TraceStore", {keyPath: "id"});
     };
-  }
+
+    open.onsuccess = function() {
+      // Start a new transaction
+      console.log("DB connection opened. Storing trace");
+      var db = open.result;
+      var tx = db.transaction("TraceStore", "readwrite");
+      var store = tx.objectStore("TraceStore");
+
+      // Add some data
+      store.put({id: 0, rawTrace: trace});
+
+      // Close the db when the transaction is done
+      tx.oncomplete = function() {
+        console.log("storing transaction complete.");
+        db.close();
+        resolve();
+      };
+    }
+  });
+}
+
+function issueRedirectForUploadedTrace(){
+  const parsedURL = new URL(location.href);
+  parsedURL.searchParams.delete('loadTimelineFromURL')
+  parsedURL.searchParams.append('loadTimelineFromURL', 'LOADFROMDB')
+  location.href = parsedURL;
 }
 
 function onModelLoad(model) {
@@ -99,10 +90,11 @@ function onModelLoad(model) {
     });
     window.uglyGlobals = uglyGlobals;
   }
-  onMetricsComputed();
+  // convert this into a promise.
+  // onMetricsComputed();
 }
 
-function setActiveModel(filename, data) {
+function setActiveModel(data) {
   console.log("Setting active model");
   var model = new tr.Model();
   var importOptions = new tr.importer.ImportOptions();
@@ -110,7 +102,7 @@ function setActiveModel(filename, data) {
   importOptions.showImportWarnings = true;
   importOptions.trackDetailedModelStats = true;
   var i = new tr.importer.Import(model, importOptions);
-  i.importTracesWithProgressDialog([data]).then(
+  return i.importTracesWithProgressDialog([data]).then(
     function() {
       activeModel = model;
       onModelLoad(model);
@@ -125,12 +117,30 @@ function handleFileSelect(evt) {
   console.log("Handling selected files");
   var files = evt.target.files; // FileList object
   var f = files[0];
-  tr.ui.b.readFile(f).then(res => {
-    setActiveModel(f.name, res);
-    var uglyGlobals = window.uglyGlobals || {};
-    uglyGlobals.rawTrace = res;
-    window.uglyGlobals = uglyGlobals;
-  })
+  tr.ui.b.readFile(f).then(res => storeTraceInIDB(res))
+    .then(issueRedirectForUploadedTrace);
+}
+
+function populateMetricInfoBox() {
+  if (window.uglyGlobals.markers) {
+    console.log("Populating metric info box");
+    var metricInfo = document.querySelector('#metricInfoContents');
+    // Poor man's JSX
+    var liItems = [];
+    for (var m of window.uglyGlobals.markers) {
+      liItems.push(`<li>${m.title}: ${m.time.toFixed(2)}ms</li>`);
+    }
+    metricInfo.innerHTML = '<ul>' + liItems.join('') + '</ul>';
+  }
+}
+
+function installMetricInfoBoxHandlers() {
+  var toggle = document.querySelector("#metricInfoToggle");
+  toggle.onclick = () => {
+    var infoContainer = document.querySelector('#metricInfo');
+    infoContainer.style.display = infoContainer.style.display === 'block'
+      ? 'none' : 'block';
+  };
 }
 
 function setGlobalMarkersFromURL() {
@@ -139,20 +149,7 @@ function setGlobalMarkersFromURL() {
   if (markers) {
     window.uglyGlobals = window.uglyGlobals || {};
     window.uglyGlobals.markers = markers;
-    var metricInfo = document.querySelector('#metricInfoContents');
-    console.log(markers);
-    // Poor man's JSX
-    var liItems = [];
-    for (var m of markers) {
-      liItems.push(`<li>${m.title}: ${m.time.toFixed(2)}ms</li>`);
-    }
-    metricInfo.innerHTML = '<ul>' + liItems.join('') + '</ul>';
-    var toggle = document.querySelector("#metricInfoToggle");
-    toggle.onclick = () => {
-      var infoContainer = document.querySelector('#metricInfo');
-      infoContainer.style.display = infoContainer.style.display === 'block'
-        ? 'none' : 'block';
-    };
+    populateMetricInfoBox();
   }
   console.log("set global markers");
 }
@@ -198,18 +195,18 @@ function setGlobalTraceFromURL() {
 
 document.getElementById('files').addEventListener('change', handleFileSelect, false);
 
-try {
-  setGlobalMarkersFromURL();
-} catch (e) {}
+// try {
+//   setGlobalMarkersFromURL();
+// } catch (e) {}
 
-var params = new URL(location.href).searchParams;
-if (params.get('loadTimelineFromURL') === 'LOADFROMDB') {
-  console.log("Loading from DB");
-  setGlobalTraceFromURL();
-} else {
-  console.log("Taking the classical path");
-  document.addEventListener('DOMContentLoaded', () => {
-    console.log("Firing synthetic DCL listener");
-    window.uglyGlobals.runOnWindowLoad.forEach(f => f());
-  })
-}
+// var params = new URL(location.href).searchParams;
+// if (params.get('loadTimelineFromURL') === 'LOADFROMDB') {
+//   console.log("Loading from DB");
+//   setGlobalTraceFromURL();
+// } else {
+//   console.log("Taking the classical path");
+//   document.addEventListener('DOMContentLoaded', () => {
+//     console.log("Firing synthetic DCL listener");
+//     window.uglyGlobals.runOnWindowLoad.forEach(f => f());
+//   })
+// }
