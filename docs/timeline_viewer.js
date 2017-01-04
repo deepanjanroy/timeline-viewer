@@ -2,6 +2,7 @@
 class Viewer {
 
   constructor() {
+    console.log("########################333");
     this.params = new URL(location.href).searchParams;
     this.timelineURL = this.params.get('loadTimelineFromURL');
 
@@ -83,13 +84,14 @@ class Viewer {
     };
 
     // Common.settings is created in a window onload listener
-    window.addEventListener('load', _ => {
-      window.uglyGlobals = window.uglyGlobals || {};
-      window.uglyGlobals.runOnWindowLoad = window.uglyGlobals.runOnWindowLoad || [];
-      window.uglyGlobals.runOnWindowLoad.push(_ => {
-        Common.settings.createSetting('timelineCaptureNetwork', true).set(true);
-        Common.settings.createSetting('timelineCaptureFilmStrip', true).set(true);
-      });
+    window.uglyGlobals = window.uglyGlobals || {};
+    window.uglyGlobals.runOnWindowLoad = window.uglyGlobals.runOnWindowLoad || [];
+    window.uglyGlobals.runOnWindowLoad.push(_ => {
+      console.log("########################222");
+      Common.settings.createSetting('timelineCaptureNetwork', true).set(true);
+      Common.settings.createSetting('timelineCaptureFilmStrip', true).set(true);
+      console.log('Trying to create memory settings');
+      Common.settings.createSetting('timelineShowMemory', true).set(true);
     });
   }
 
@@ -191,9 +193,10 @@ class Viewer {
   loadResourcePromise(requestedURL) {
     console.log("Calling Viewer.loadResourcePromise with url: ", requestedURL);
     if (window.traceCache.has(requestedURL)) {
-      // This also handle LOADFROMDB
+      // This also handle UPLOADED_TRACE
       console.log(`TraceCache hit for url ${requestedURL}`);
       return Promise.resolve(window.traceCache.get(requestedURL));
+      console.log("Payload from cache");
     }
 
     // debugger;

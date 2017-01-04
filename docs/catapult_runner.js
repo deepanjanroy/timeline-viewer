@@ -44,15 +44,26 @@ function storeTraceInIDB(trace) {
         db.close();
         resolve();
       };
+
+      tx.onerror = event => console.error(event);
+      tx.onabort = event => console.error(event);
     }
   });
 }
 
-function issueRedirectForUploadedTrace(){
+function issueRedirectForUploadedTrace() {
   const parsedURL = new URL(location.href);
   parsedURL.searchParams.delete('loadTimelineFromURL')
   parsedURL.searchParams.append('loadTimelineFromURL', 'LOADFROMDB')
   location.href = parsedURL;
+}
+
+function pushHistoryStateForUploadedTrace() {
+  const parsedURL = new URL(location.href);
+  parsedURL.searchParams.delete('loadTimelineFromURL')
+  parsedURL.searchParams.append('loadTimelineFromURL', 'UPLOADED_TRACE')
+  history.pushState(null, '', parsedURL);
+  Runtime._queryParamsObject['loadTimelineFromURL'] = 'UPLOADED_TRACE';
 }
 
 function onModelLoad(model) {
@@ -117,8 +128,13 @@ function handleFileSelect(evt) {
   console.log("Handling selected files");
   var files = evt.target.files; // FileList object
   var f = files[0];
-  tr.ui.b.readFile(f).then(res => storeTraceInIDB(res))
-    .then(issueRedirectForUploadedTrace);
+  tr.ui.b.readFile(f).then(res => {
+    window.traceCache = new Map();
+    console.log("Storing trace in traceCache");
+    window.traceCache.set('UPLOADED_TRACE', res);
+    pushHistoryStateForUploadedTrace();
+    return setActiveModel(res);
+  }).then(initViewer);
 }
 
 function populateMetricInfoBox() {

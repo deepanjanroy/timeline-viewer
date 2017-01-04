@@ -51,6 +51,9 @@ function loadTraceFromIDB() {
       tx.oncomplete = function() {
         db.close();
       };
+
+      tx.onerror = event => console.error(event);
+      tx.onabort = event => console.error(event);
     }
 
     open.onerror = function() {
@@ -60,6 +63,7 @@ function loadTraceFromIDB() {
 }
 
 function fetchTrace(url, callbetween) {
+  console.log("Calling fetchTrace with URL", url);
   return new Promise((resolve, reject) => {
     if (url === 'LOADFROMDB') {
       return resolve(loadTraceFromIDB());
