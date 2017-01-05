@@ -131,7 +131,6 @@ function init() {
     fetchTrace(traceURL).then(payload => {
       console.log("Storing trace in traceCache");
       window.traceCache.set(traceURL, payload);
-      debugger;
       return setActiveModel(unzipOrDecode(payload));
     }).then(initViewer);
   }
