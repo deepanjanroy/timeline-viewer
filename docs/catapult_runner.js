@@ -1,6 +1,7 @@
 console.log("Running catapult_runner");
 
 // Global var for various debugging
+// I guess this is not for debugging anymore?
 var activeModel = null;
 
 var ttiHistogramNames = [
@@ -64,6 +65,22 @@ function pushHistoryStateForUploadedTrace() {
   parsedURL.searchParams.append('loadTimelineFromURL', 'UPLOADED_TRACE')
   history.pushState(null, '', parsedURL);
   Runtime._queryParamsObject['loadTimelineFromURL'] = 'UPLOADED_TRACE';
+  window.onpopstate = () => {
+    // Reload page without query params
+    var pageURL = new URL(location.href);
+    window.location.assign(new URL(pageURL.origin + pageURL.pathname));
+  }
+}
+
+function addHandAnnotatedMarkers(model, mutableMarkers) {
+  var filteredMetadata = model.metadata.filter(m => m.name === 'CustomMarkings');
+  if (filteredMetadata.length > 1) throw new Error("This should not be happening");
+  if (filteredMetadata.length < 1) return;
+  var customMarkings = filteredMetadata[0];
+  for (var [title, time] of customMarkings.value) {
+    console.log("Adding custom marking", title, time);
+    mutableMarkers.push({title, time});
+  }
 }
 
 function onModelLoad(model) {
@@ -101,6 +118,8 @@ function onModelLoad(model) {
     });
     window.uglyGlobals = uglyGlobals;
   }
+
+  addHandAnnotatedMarkers(model, uglyGlobals.markers);
   // convert this into a promise.
   // onMetricsComputed();
 }
@@ -146,6 +165,7 @@ function populateMetricInfoBox() {
     for (var m of window.uglyGlobals.markers) {
       liItems.push(`<li>${m.title}: ${m.time.toFixed(2)}ms</li>`);
     }
+
     metricInfo.innerHTML = '<ul>' + liItems.join('') + '</ul>';
   }
 }
@@ -154,8 +174,8 @@ function installMetricInfoBoxHandlers() {
   var toggle = document.querySelector("#metricInfoToggle");
   toggle.onclick = () => {
     var infoContainer = document.querySelector('#metricInfo');
-    infoContainer.style.display = infoContainer.style.display === 'block'
-      ? 'none' : 'block';
+    infoContainer.style.display = infoContainer.style.display === ''
+      ? 'none' : '';
   };
 }
 

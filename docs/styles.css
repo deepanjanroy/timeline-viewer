@@ -96,6 +96,7 @@ html.hide-devtools {
     right: 20px;
     background-color: hsla(240, 57%, 70%, 0.36);
     z-index: 1;
+    display: block;
 }
 
 #metricInfoToggle {
@@ -107,6 +108,11 @@ html.hide-devtools {
     width: 100px;
     padding: 5px 5px;
     z-index: 2;
+    cursor: pointer;
+}
+
+.hide {
+    display: none;
 }
 
 /* edits on the devtools UI */

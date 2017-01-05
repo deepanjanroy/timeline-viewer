@@ -5,10 +5,15 @@ function unzipOrDecode(payload) {
     console.log("Payload unzipped");
   } catch (e) {
     // Do nothing. Original file is probably not gzipped.
-    console.error(e);
+    console.log("Could not unzip because of this error", e);
     console.log("Payload not unzipped. Decoding to text");
-    var decoder = new TextDecoder("utf-8");
-    payload = decoder.decode(payload);
+    try {
+      var decoder = new TextDecoder("utf-8");
+      payload = decoder.decode(payload);
+    } catch (e) {
+      console.log("Could not decode to text because of this erorr", e);
+      console.log("Assuming the payload is already text");
+    }
   }
   return payload;
 }
@@ -65,9 +70,6 @@ function loadTraceFromIDB() {
 function fetchTrace(url, callbetween) {
   console.log("Calling fetchTrace with URL", url);
   return new Promise((resolve, reject) => {
-    if (url === 'LOADFROMDB') {
-      return resolve(loadTraceFromIDB());
-    }
     url = adjustURLforCORS(url);
     // TODO: Change this to fetch.
     var xhr = new XMLHttpRequest();
@@ -75,7 +77,7 @@ function fetchTrace(url, callbetween) {
     xhr.responseType = "arraybuffer";
     callbetween && callbetween(xhr);
     xhr.onload = _ => {
-      resolve(unzipOrDecode(xhr.response));
+      resolve(xhr.response);
     };
     xhr.onerror = err => {
       console.error('Download of asset failed. ' + ((xhr.readyState == xhr.DONE) ? 'CORS headers likely not applied.' : ''));
@@ -129,7 +131,8 @@ function init() {
     fetchTrace(traceURL).then(payload => {
       console.log("Storing trace in traceCache");
       window.traceCache.set(traceURL, payload);
-      return setActiveModel(payload);
+      debugger;
+      return setActiveModel(unzipOrDecode(payload));
     }).then(initViewer);
   }
 }

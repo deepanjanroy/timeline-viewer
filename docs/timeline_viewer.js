@@ -2,7 +2,6 @@
 class Viewer {
 
   constructor() {
-    console.log("########################333");
     this.params = new URL(location.href).searchParams;
     this.timelineURL = this.params.get('loadTimelineFromURL');
 
@@ -87,10 +86,8 @@ class Viewer {
     window.uglyGlobals = window.uglyGlobals || {};
     window.uglyGlobals.runOnWindowLoad = window.uglyGlobals.runOnWindowLoad || [];
     window.uglyGlobals.runOnWindowLoad.push(_ => {
-      console.log("########################222");
       Common.settings.createSetting('timelineCaptureNetwork', true).set(true);
       Common.settings.createSetting('timelineCaptureFilmStrip', true).set(true);
-      console.log('Trying to create memory settings');
       Common.settings.createSetting('timelineShowMemory', true).set(true);
     });
   }
@@ -182,10 +179,15 @@ class Viewer {
       console.log("Payload unzipped");
     } catch (e) {
       // Do nothing. Original file is probably not gzipped.
-      console.error(e);
+      console.log("Could not unzip because of this error", e);
       console.log("Payload not unzipped. Decoding to text");
-      var decoder = new TextDecoder("utf-8");
-      payload = decoder.decode(payload);
+      try {
+        var decoder = new TextDecoder("utf-8");
+        payload = decoder.decode(payload);
+      } catch (e) {
+        console.log("Could not decode to text because of this erorr", e);
+        console.log("Assuming the payload is already text");
+      }
     }
     return payload;
   }
@@ -195,7 +197,7 @@ class Viewer {
     if (window.traceCache.has(requestedURL)) {
       // This also handle UPLOADED_TRACE
       console.log(`TraceCache hit for url ${requestedURL}`);
-      return Promise.resolve(window.traceCache.get(requestedURL));
+      return Promise.resolve(this.unzipOrDecode(window.traceCache.get(requestedURL)));
       console.log("Payload from cache");
     }
 
