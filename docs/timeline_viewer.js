@@ -88,6 +88,8 @@ class Viewer {
     window.uglyGlobals.runOnWindowLoad.push(_ => {
       Common.settings.createSetting('timelineCaptureNetwork', true).set(true);
       Common.settings.createSetting('timelineCaptureFilmStrip', true).set(true);
+      Common.settings.createSetting('timelineCaptureMemory', true).set(true);
+      // Future proofing
       Common.settings.createSetting('timelineShowMemory', true).set(true);
     });
   }
