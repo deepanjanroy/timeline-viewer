@@ -119,6 +119,8 @@ function onModelLoad(model) {
     window.uglyGlobals = uglyGlobals;
   }
 
+  var uglyGlobals = window.uglyGlobals || {};
+  uglyGlobals.markers = uglyGlobals.markers || [];
   addHandAnnotatedMarkers(model, uglyGlobals.markers);
   // convert this into a promise.
   // onMetricsComputed();
