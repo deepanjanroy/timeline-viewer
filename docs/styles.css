@@ -90,13 +90,20 @@ html.hide-devtools {
 
 #metricInfo {
     position: fixed;
-    height: 25%;
-    width: 25%;
+    min-height: 25%;
+    min-width: 25%;
     bottom: 20px;
     right: 20px;
     background-color: hsla(240, 57%, 70%, 0.36);
     z-index: 1;
     display: block;
+    display: inline-block;
+    padding-bottom: 30px;
+}
+
+#metricStatusContents {
+    font-family: monospace;
+    padding: 5px;
 }
 
 #metricInfoToggle {

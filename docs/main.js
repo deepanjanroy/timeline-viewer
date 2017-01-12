@@ -1,5 +1,5 @@
 function unzipOrDecode(payload) {
-  console.log("Attempting to unzip payload");
+  showStatusOnInfoBox("Unzipping payload");
   try {
     payload = pako.inflate(payload, { to: 'string' });
     console.log("Payload unzipped");
@@ -69,26 +69,32 @@ function loadTraceFromIDB() {
 
 function fetchTrace(url, callbetween) {
   console.log("Calling fetchTrace with URL", url);
+  showStatusOnInfoBox("Fetching trace file");
   return new Promise((resolve, reject) => {
-    url = adjustURLforCORS(url);
-    // TODO: Change this to fetch.
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', url);
-    xhr.responseType = "arraybuffer";
-    callbetween && callbetween(xhr);
-    xhr.onload = _ => {
-      resolve(xhr.response);
-    };
-    xhr.onerror = err => {
-      console.error('Download of asset failed. ' + ((xhr.readyState == xhr.DONE) ? 'CORS headers likely not applied.' : ''));
-      reject(err);
-    };
-    xhr.send();
+    try {
+      url = adjustURLforCORS(url);
+      // TODO: Change this to fetch.
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', url);
+      xhr.responseType = "arraybuffer";
+      callbetween && callbetween(xhr);
+      xhr.onload = _ => {
+        resolve(xhr.response);
+      };
+      xhr.onerror = err => {
+        console.error('Download of asset failed. ' + ((xhr.readyState == xhr.DONE) ? 'CORS headers likely not applied.' : ''));
+        reject(err);
+      };
+      xhr.send();
+    } catch (e) {
+      console.error(e);
+      reject(e);
+    }
   });
 }
 
 function initViewer() {
-  console.log("creating viewer");
+  showStatusOnInfoBox("Initializing viewer");
   window.viewer = new Viewer();
 
   // hooks for the apis.google client.js
@@ -109,6 +115,7 @@ function initViewer() {
      time: 1500
      }
      ]; */
+  showStatusOnInfoBox("Timeline should be loaded in a few seconds.");
   window.uglyGlobals.runOnWindowLoad.forEach(f => f());
   populateMetricInfoBox();
 }
@@ -129,10 +136,12 @@ function init() {
     window.traceCache = new Map();
     var traceCache = window.traceCache;
     fetchTrace(traceURL).then(payload => {
+      var unzipped = unzipOrDecode(payload);
       console.log("Storing trace in traceCache");
-      window.traceCache.set(traceURL, payload);
-      return setActiveModel(unzipOrDecode(payload));
-    }).then(initViewer);
+      window.traceCache.set(traceURL, unzipped);
+      return setActiveModel(unzipped);
+    }).then(initViewer)
+      .catch(() => {showStatusOnInfoBox("Failed to fetch trace");});
   }
 }
 

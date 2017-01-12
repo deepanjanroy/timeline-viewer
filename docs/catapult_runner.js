@@ -127,7 +127,7 @@ function onModelLoad(model) {
 }
 
 function setActiveModel(data) {
-  console.log("Setting active model");
+  showStatusOnInfoBox("Importing catapult model");
   var model = new tr.Model();
   var importOptions = new tr.importer.ImportOptions();
   importOptions.pruneEmptyContainers = false;
@@ -160,7 +160,6 @@ function handleFileSelect(evt) {
 
 function populateMetricInfoBox() {
   if (window.uglyGlobals.markers) {
-    console.log("Populating metric info box");
     var metricInfo = document.querySelector('#metricInfoContents');
     // Poor man's JSX
     var liItems = [];
@@ -170,6 +169,14 @@ function populateMetricInfoBox() {
 
     metricInfo.innerHTML = '<ul>' + liItems.join('') + '</ul>';
   }
+  // Clear status
+}
+
+function showStatusOnInfoBox(msg) {
+  var metricInfo = document.querySelector('#metricStatusContents');
+  console.log("StatusInfo: ", msg);
+  // Can't wait to XSS myself
+  metricInfo.innerHTML = msg;
 }
 
 function installMetricInfoBoxHandlers() {
