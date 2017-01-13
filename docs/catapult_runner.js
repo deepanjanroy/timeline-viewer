@@ -83,12 +83,77 @@ function addHandAnnotatedMarkers(model, mutableMarkers) {
   }
 }
 
+function getFMPValue(histogramSet) {
+  var fmpHistogram = histogramSet.getValuesNamed('timeToFirstMeaningfulPaint')[0];
+  var nonEmptyBins = fmpHistogram.allBins.filter(b => b.count > 0);
+  if (nonEmptyBins.length !== 1) return null;
+  var bin = nonEmptyBins[0];
+  if (bin.diagnosticMaps.length !== 1) return null;
+  var diagnostic = bin.diagnosticMaps[0];
+  if (!diagnostic.get('Navigation infos')) return null;
+  return diagnostic.get('Navigation infos').value.fmp;
+}
+
+function getFCPValue(histogramSet) {
+  var fcpHistogram = histogramSet.getValuesNamed('timeToFirstContentfulPaint')[0];
+  var nonEmptyBins = fcpHistogram.allBins.filter(b => b.count > 0);
+  if (nonEmptyBins.length !== 1) return null;
+  var bin = nonEmptyBins[0];
+  if (bin.diagnosticMaps.length !== 1) return null;
+  var diagnostic = bin.diagnosticMaps[0];
+  if (!diagnostic.get('eventTimestamp')) return null;
+  return diagnostic.get('eventTimestamp').value;
+}
+
+function getLoadValue(histogramSet) {
+  var loadHistogram = histogramSet.getValuesNamed('timeToOnload')[0];
+  var nonEmptyBins = loadHistogram.allBins.filter(b => b.count > 0);
+  if (nonEmptyBins.length !== 1) {
+    console.error("Multiple values for onLoad. Punting");
+    return null;
+  }
+  var bin = nonEmptyBins[0];
+  if (bin.diagnosticMaps.length !== 1) return null;
+  var diagnostic = bin.diagnosticMaps[0];
+  if (!diagnostic.get('eventTimestamp')) return null;
+  return diagnostic.get('eventTimestamp').value;
+}
+
 function onModelLoad(model) {
   console.log("executing onModelLoad");
 
   var histogramSet = new tr.v.HistogramSet();
   tr.metrics.sh.loadingMetric(histogramSet, model);
   console.log("histogramSet", histogramSet);
+
+  var markers = [];
+
+  // Add FCP
+  var fcp = getFCPValue(histogramSet);
+  if (fcp) {
+    markers.push({
+      title: "FCP",
+      time: fcp
+    });
+  }
+
+  // Add FMP
+  var fmp = getFMPValue(histogramSet);
+  if (fmp) {
+    markers.push({
+      title: "FMP",
+      time: fmp
+    });
+  }
+
+  // Add Load
+  var loadTime = getLoadValue(histogramSet);
+  if (loadTime) {
+    markers.push({
+      title: "OnLoad",
+      time: loadTime
+    });
+  }
 
   for (var histogramName of ttiHistogramNames) {
     var values = histogramSet.getValuesNamed(histogramName);
@@ -110,19 +175,20 @@ function onModelLoad(model) {
     }
     if (metricValue.running.count < 1) continue;
     console.log("processing ", histogramName);
-    var uglyGlobals = window.uglyGlobals || {};
-    uglyGlobals.markers = uglyGlobals.markers || [];
-    uglyGlobals.markers.push({
+    markers.push({
       title: histogramName,
       time: metricValue.running.mean
     });
-    window.uglyGlobals = uglyGlobals;
   }
 
+  addHandAnnotatedMarkers(model, markers);
+
   var uglyGlobals = window.uglyGlobals || {};
-  uglyGlobals.markers = uglyGlobals.markers || [];
-  addHandAnnotatedMarkers(model, uglyGlobals.markers);
-  // convert this into a promise.
+  uglyGlobals.markers = markers;
+  window.uglyGlobals = uglyGlobals;
+
+  // Dead code now.
+  // convert this into a promise. 
   // onMetricsComputed();
 }
 

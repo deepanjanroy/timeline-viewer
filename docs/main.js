@@ -140,8 +140,13 @@ function init() {
       console.log("Storing trace in traceCache");
       window.traceCache.set(traceURL, unzipped);
       return setActiveModel(unzipped);
-    }).then(initViewer)
-      .catch(() => {showStatusOnInfoBox("Failed to fetch trace");});
+    }).catch(() => {showStatusOnInfoBox("Failed to fetch trace");})
+      .then(initViewer)
+      .catch(e => {
+        console.error(e);
+        showStatusOnInfoBox("Something went wrong");
+      });
+       
   }
 }
 
