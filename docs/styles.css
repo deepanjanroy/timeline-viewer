@@ -94,7 +94,8 @@ html.hide-devtools {
     min-width: 25%;
     bottom: 20px;
     right: 20px;
-    background-color: hsla(240, 57%, 70%, 0.36);
+    background-color: hsla(219, 45%, 13%, 0.79);
+    color: white;
     z-index: 1;
     display: block;
     display: inline-block;

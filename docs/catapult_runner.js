@@ -5,15 +5,24 @@ console.log("Running catapult_runner");
 var activeModel = null;
 
 var ttiHistogramNames = [
-  'firstInteractive-FMP',
-  'firstInteractive-FCP',
-  'firstInteractive-StartNav',
-  'firstInteractive-FMP-ReverseSearch',
-  'firstInteractive-FCP-ReverseSearch',
-  'firstInteractive-StartNav-ReverseSearch',
-  'firstInteractive-FMP-Network',
-  'firstInteractive-FMP-ReverseSearchFromNetworkFirstInteractive'
+  // 'firstInteractive-FMP',
+  // 'firstInteractive-FCP',
+  // 'firstInteractive-StartNav',
+  // 'firstInteractive-FMP-ReverseSearch',
+  // 'firstInteractive-FCP-ReverseSearch',
+  // 'firstInteractive-StartNav-ReverseSearch',
+  // 'firstInteractive-FMP-Network',
+  'firstInteractive-FMP-ReverseSearchFromNetworkFirstInteractive',
+  // 'firstInteractiveNetRevEQT',
+  'firstInteractive-FMP-Proportional-w15-3000-lonely-ws-250-padding-1000psb-5000',
+  'firstInteractive-FCP-Proportional-w15-3000-lonely-ws-250-padding-1000psb-5000'
 ];
+
+const userFriendlyMetricName = new Map([
+  ['firstInteractive-FMP-Proportional-w15-3000-lonely-ws-250-padding-1000psb-5000', '(New)FirstInteracive-FMP'],
+  ['firstInteractive-FCP-Proportional-w15-3000-lonely-ws-250-padding-1000psb-5000', '(New)FirstInteracive-FCP'],
+  ['firstInteractive-FMP-ReverseSearchFromNetworkFirstInteractive', 'FirstConsistentlyInteractive'],
+]);
 
 function storeTraceInIDB(trace) {
   // Put the uploaded trace in an indexedDB because it's 3AM and that's the best
@@ -84,7 +93,7 @@ function addHandAnnotatedMarkers(model, mutableMarkers) {
 }
 
 function getFMPValue(histogramSet) {
-  var fmpHistogram = histogramSet.getValuesNamed('timeToFirstMeaningfulPaint')[0];
+  var fmpHistogram = histogramSet.getHistogramNamed('timeToFirstMeaningfulPaint');
   var nonEmptyBins = fmpHistogram.allBins.filter(b => b.count > 0);
   if (nonEmptyBins.length !== 1) return null;
   var bin = nonEmptyBins[0];
@@ -95,7 +104,7 @@ function getFMPValue(histogramSet) {
 }
 
 function getFCPValue(histogramSet) {
-  var fcpHistogram = histogramSet.getValuesNamed('timeToFirstContentfulPaint')[0];
+  var fcpHistogram = histogramSet.getHistogramNamed('timeToFirstContentfulPaint');
   var nonEmptyBins = fcpHistogram.allBins.filter(b => b.count > 0);
   if (nonEmptyBins.length !== 1) return null;
   var bin = nonEmptyBins[0];
@@ -106,7 +115,7 @@ function getFCPValue(histogramSet) {
 }
 
 function getLoadValue(histogramSet) {
-  var loadHistogram = histogramSet.getValuesNamed('timeToOnload')[0];
+  var loadHistogram = histogramSet.getHistogramNamed('timeToOnload');
   var nonEmptyBins = loadHistogram.allBins.filter(b => b.count > 0);
   if (nonEmptyBins.length !== 1) {
     console.error("Multiple values for onLoad. Punting");
@@ -156,16 +165,11 @@ function onModelLoad(model) {
   }
 
   for (var histogramName of ttiHistogramNames) {
-    var values = histogramSet.getValuesNamed(histogramName);
-    console.log("histogramValues for", histogramName, values);
-    if (values.length > 1) {
-      console.warn("More than one histogram found of ", histogramName);
-      console.warn("I don't know what to do with all these.");
+    var metricValue = histogramSet.getHistogramNamed(histogramName);
+    if (metricValue === undefined) {
+      console.error("No histogram found for ", ttiHistogramNames);
       continue;
     }
-    if (values.length < 1) continue;
-
-    var metricValue = values[0];
     if (!metricValue.running) continue;
     console.log("merticValue", metricValue);
     if (metricValue.running.count > 1) {
@@ -176,7 +180,7 @@ function onModelLoad(model) {
     if (metricValue.running.count < 1) continue;
     console.log("processing ", histogramName);
     markers.push({
-      title: histogramName,
+      title: userFriendlyMetricName.get(histogramName) || histogramName,
       time: metricValue.running.mean
     });
   }
